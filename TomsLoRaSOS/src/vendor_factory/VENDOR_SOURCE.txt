@@ -1,0 +1,2 @@
+Official Factory HAL copied from:
+%USERPROFILE%\Documents\Arduino\libraries\LilyGoLib\examples\factory

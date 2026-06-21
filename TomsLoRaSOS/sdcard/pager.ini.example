@@ -1,0 +1,23 @@
+# LilyGO T-LoRa Pager Outdoor Prototype
+# Rename this file to /pager.ini on the SD card.
+
+device_id=tom
+device_name=TOM
+
+wifi_ssid=
+wifi_password=
+
+# Public OSM standard server: visible interactive tiles only.
+# Do not use it for automatic bulk preloading.
+tile_url=https://tile.openstreetmap.org/{z}/{x}/{y}.png
+
+zoom=18
+
+# Startposition fuer Kartenanzeige ohne GPS-Fix, z.B. im Hotel.
+fallback_lat=0.0
+fallback_lon=0.0
+position_interval_seconds=60
+
+safety_no_motion_seconds=30
+safety_countdown_seconds=30
+auto_display=1

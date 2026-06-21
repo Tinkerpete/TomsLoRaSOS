@@ -1,0 +1,39 @@
+# Arduino and local build output
+build/
+build_*/
+*.ino.bin
+*.ino.elf
+*.ino.map
+*.ino.merged.bin
+*.ino.partitions.bin
+*.ino.bootloader.bin
+*.o
+*.d
+*.a
+
+# Python/tool caches
+__pycache__/
+*.pyc
+
+# Local archives, backups and temporary files
+*.zip
+*.tgz
+*.tar.gz
+*.7z
+*.rar
+*.bak
+*.backup*
+*.orig
+*.old
+*.tmp
+
+# Local/private runtime data
+pager.ini
+messages/
+tracks/
+
+# Editor/OS noise
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

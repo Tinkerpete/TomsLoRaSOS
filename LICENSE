@@ -1,0 +1,29 @@
+TomsLoRaSOS License
+===================
+
+Copyright (c) 2026 Tom
+
+The project-specific source code written for TomsLoRaSOS is available under the
+GNU General Public License, version 3.0 or later (GPL-3.0-or-later). See
+`COPYING.GPL-3.0` for the full license text.
+
+Commercial License
+------------------
+
+GPL-compliant commercial use of Tom's project-specific code is allowed under the
+GPL. A separate commercial license is required for closed-source/proprietary
+use, redistribution without GPL obligations, or customer projects where the GPL
+terms should not apply.
+
+For commercial licensing, support, cooperation, or device showcase work, contact
+Tom via:
+
+https://steinlaus.de/
+
+Third-Party Components
+----------------------
+
+The files in `TomsLoRaSOS/src/vendor_factory/` are derived from the official
+LilyGO factory example and keep their original upstream licensing and
+attribution. Other libraries and map/tile providers keep their own licenses and
+terms of use.

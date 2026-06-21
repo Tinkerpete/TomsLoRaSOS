@@ -1,0 +1,26 @@
+{
+  "project": "TomsLoRaSOS",
+  "version": "0.1.3-prototype",
+  "files": [
+    "LICENSE",
+    "TomsLoRaSOS/01_PREPARE_VENDOR_FILES.bat",
+    "TomsLoRaSOS/02_FIX_VENDOR_FILES.bat",
+    "TomsLoRaSOS/02_FIX_VENDOR_FILES.ps1",
+    "TomsLoRaSOS/PATCH_v0.1.3.md",
+    "TomsLoRaSOS/TomsLoRaSOS.ino",
+    "TomsLoRaSOS/app_config.h",
+    "TomsLoRaSOS/app_types.h",
+    "TomsLoRaSOS/prepare_vendor_files.py",
+    "README.md",
+    "sdcard/maps/.gitkeep",
+    "sdcard/messages/.gitkeep",
+    "sdcard/pager.ini.example",
+    "tools/tile_packager.py"
+  ],
+  "notes": [
+    "Replace the sketch files with the v0.1.3 patch or use the full archive.",
+    "Run the existing vendor HAL preparation only if src/vendor_factory is not present locally.",
+    "Fixed Arduino prototype generation, PNGdec callback, and LVGL API compatibility issues.",
+    "Embedded sketch still requires compilation on the user's Arduino toolchain."
+  ]
+}
