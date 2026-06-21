@@ -174,6 +174,7 @@ static int g_lastTileHttpCode = 0;
 static String g_lastTileState = "idle";
 static bool g_sdReady = false;
 static bool g_wifiEnabled = false;
+static bool g_wifiConnectedLastLoop = false;
 
 static uint32_t g_pngDecodeOk = 0;
 static uint32_t g_pngDecodeFail = 0;
@@ -249,6 +250,7 @@ static void uiToast(const String &text, uint32_t durationMs);
 static void updateWifiPopupState();
 static void disableWifi();
 static void connectWifi();
+static void pollWifiConnection();
 static bool messagesVisible();
 static bool tracksVisible();
 static bool powerVisible();
@@ -3779,6 +3781,7 @@ static void hideWifiPopup() {
 
 static void disableWifi() {
   g_wifiEnabled = false;
+  g_wifiConnectedLastLoop = false;
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
   resetLookaheadWindow();
@@ -3800,10 +3803,32 @@ static void connectWifi() {
   }
 
   Serial.printf("[WIFI] connecting to ssid=%s\n", g_cfg.wifiSsid.c_str());
+  g_wifiConnectedLastLoop = false;
+  resetLookaheadWindow();
   WiFi.mode(WIFI_STA);
   WiFi.begin(g_cfg.wifiSsid.c_str(), g_cfg.wifiPassword.c_str());
   refreshStatus();
   updateWifiPopupState();
+}
+
+static void pollWifiConnection() {
+  bool connected = g_wifiEnabled && WiFi.status() == WL_CONNECTED;
+
+  if (connected && !g_wifiConnectedLastLoop) {
+    Serial.println("[WIFI] connected; retrying visible map tiles");
+    resetLookaheadWindow();
+    g_lastTileState = "wifi-online";
+    scheduleMapRedraw();
+    refreshStatus();
+    updateWifiPopupState();
+    uiToast("WLAN verbunden; lade Karten", 2600);
+  } else if (!connected && g_wifiConnectedLastLoop) {
+    Serial.println("[WIFI] disconnected");
+    refreshStatus();
+    updateWifiPopupState();
+  }
+
+  g_wifiConnectedLastLoop = connected;
 }
 
 static void toggleWifiEnabledFromPopup() {
@@ -4053,6 +4078,7 @@ void loop() {
   pollSafety();
   pollSosAudio();
   updatePeerSosPulse();
+  pollWifiConnection();
   processTileResults();
   renderMapIfDue();
 

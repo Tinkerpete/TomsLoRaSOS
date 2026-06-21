@@ -96,6 +96,8 @@ Ja: Wenn WLAN aktiviert ist und eine gueltige `tile_url` in `pager.ini` steht,
 kannst du einfach die Karte bewegen. Fehlt eine aktuell sichtbare Kachel, wird
 sie geladen und auf der SD-Karte gespeichert. Durch ein bisschen Scrollen in der
 Gegend entsteht also nach und nach ein lokaler Cache fuer genau diese Umgebung.
+Wenn WLAN erst spaeter eingeschaltet wird, erkennt die Firmware die Verbindung,
+zeichnet die Karte neu und fordert die sichtbaren fehlenden Kacheln erneut an.
 
 Bitte fair bleiben: Der oeffentliche OpenStreetMap-Standardserver ist fuer
 normale interaktive Nutzung mit Cache gedacht, nicht fuer massenhaftes
