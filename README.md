@@ -155,9 +155,9 @@ arduino-cli upload  --fqbn esp32:esp32:tlora_pager -p COMx .\TomsLoRaSOS
 
 Im WLAN-Popup gibt es vier fokussierbare Felder: Name, SSID, Passwort und
 `WLAN einschalten/ausschalten`. Der Scrollrad-Klick wechselt zwischen diesen
-Feldern. Enter speichert im Passwortfeld; auf dem WLAN-Feld schaltet Enter WLAN
-ein oder aus und schliesst das Popup. `q` oder Esc schliesst das Popup ohne
-weitere Aktion.
+Feldern. Enter speichert im Passwortfeld und setzt den Fokus auf das WLAN-Feld.
+Auf dem WLAN-Feld schaltet Enter WLAN ein oder aus, das Popup bleibt offen.
+`q` oder Esc schliesst das Popup.
 
 Die Statuszeile zeigt den SOS-/Totmannmodus explizit als `SOS: Off`, `SOS: On`,
 `SOS: Warn` oder `SOS: Send`.

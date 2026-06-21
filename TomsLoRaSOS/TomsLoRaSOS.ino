@@ -3583,14 +3583,12 @@ static void processKey(char c) {
         uiToast(g_wifiActiveField == 1 ? "SSID eingeben" :
                                       "Passwort eingeben; Enter speichert", 2200);
       } else if (g_wifiActiveField == 2) {
-        saveWifiAndConnect();
+        saveWifiFieldsAndFocusToggle();
       } else {
         toggleWifiEnabledFromPopup();
-        hideWifiPopup();
       }
     } else if (c == 'o' || c == 'O') {
       toggleWifiEnabledFromPopup();
-      hideWifiPopup();
     } else if (c >= 32 && c <= 126) {
       lv_obj_t *area = activeWifiArea();
       if (area) lv_textarea_add_char(area, c);
@@ -3867,6 +3865,22 @@ static void saveWifiAndConnect() {
   } else {
     uiToast(g_wifiEnabled ? "WLAN startet; Speichern fehlgeschlagen" :
                             "WLAN bleibt aus; Speichern fehlgeschlagen", 5000);
+  }
+}
+
+static void saveWifiFieldsAndFocusToggle() {
+  readWifiFieldsFromPopup();
+
+  bool storedNvs = saveWifiCredentialsToNvs();
+  if (g_wifiEnabled) connectWifi();
+  else disableWifi();
+
+  focusWifiField(3);
+  if (storedNvs) {
+    uiToast(g_wifiEnabled ? "WLAN gespeichert; Verbindung startet" :
+                            "WLAN gespeichert", 2600);
+  } else {
+    uiToast("WLAN speichern fehlgeschlagen", 3000);
   }
 }
 
