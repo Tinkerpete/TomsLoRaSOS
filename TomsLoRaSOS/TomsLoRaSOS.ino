@@ -230,9 +230,11 @@ static lv_obj_t *g_wifiPopup = nullptr;
 static lv_obj_t *g_wifiNameArea = nullptr;
 static lv_obj_t *g_wifiSsidArea = nullptr;
 static lv_obj_t *g_wifiPasswordArea = nullptr;
+static lv_obj_t *g_wifiToggleButton = nullptr;
+static lv_obj_t *g_wifiToggleLabel = nullptr;
 static lv_obj_t *g_wifiStateLabel = nullptr;
 static lv_obj_t *g_wifiHint = nullptr;
-static uint8_t g_wifiActiveField = 0; // 0 = name, 1 = SSID, 2 = password
+static uint8_t g_wifiActiveField = 0; // 0 = name, 1 = SSID, 2 = password, 3 = on/off
 
 static lv_obj_t *g_bootLabel = nullptr;
 static uint16_t *g_mapBuffer = nullptr;
@@ -3100,7 +3102,7 @@ static void setupUi() {
   lv_obj_set_style_text_color(g_powerLabel, lv_color_white(), 0);
 
   g_wifiPopup = lv_obj_create(lv_layer_top());
-  lv_obj_set_size(g_wifiPopup, 448, 194);
+  lv_obj_set_size(g_wifiPopup, 448, 214);
   lv_obj_center(g_wifiPopup);
   stylePopupShell(g_wifiPopup, 0x15212A);
   lv_obj_add_flag(g_wifiPopup, LV_OBJ_FLAG_HIDDEN);
@@ -3131,10 +3133,27 @@ static void setupUi() {
   lv_textarea_set_max_length(g_wifiPasswordArea, 64);
   lv_textarea_set_password_mode(g_wifiPasswordArea, true);
 
+  makeLabel(g_wifiPopup, "WLAN:", 7, 143);
+  g_wifiToggleButton = lv_obj_create(g_wifiPopup);
+  lv_obj_set_pos(g_wifiToggleButton, 86, 135);
+  lv_obj_set_size(g_wifiToggleButton, 337, 30);
+  lv_obj_clear_flag(g_wifiToggleButton, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_flag(g_wifiToggleButton, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_style_bg_color(g_wifiToggleButton, lv_color_hex(0x223445), 0);
+  lv_obj_set_style_bg_opa(g_wifiToggleButton, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_width(g_wifiToggleButton, 1, 0);
+  lv_obj_set_style_border_color(g_wifiToggleButton, lv_color_hex(0x5A7C99), 0);
+  lv_obj_set_style_border_width(g_wifiToggleButton, 2, LV_STATE_FOCUSED);
+  lv_obj_set_style_border_color(g_wifiToggleButton, lv_color_hex(0xFFD000), LV_STATE_FOCUSED);
+  lv_obj_set_style_radius(g_wifiToggleButton, 4, 0);
+  g_wifiToggleLabel = lv_label_create(g_wifiToggleButton);
+  lv_obj_center(g_wifiToggleLabel);
+  lv_obj_set_style_text_color(g_wifiToggleLabel, lv_color_white(), 0);
+
   g_wifiHint = makeLabel(
       g_wifiPopup,
-      "#FFD000 O:#Ein/Aus  #FFD000 Druck:#Feld  #FFD000 Enter:#Weiter/speichern  #FFD000 Zurueck:#Abbruch",
-      7, 145);
+      "#FFD000 Druck:#Feld  #FFD000 Enter:#Weiter/speichern/AN-AUS  #FFD000 Q/Esc:#Schliessen",
+      7, 178);
   enableRecolor(g_wifiHint);
   lv_obj_set_width(g_wifiHint, 434);
   lv_label_set_long_mode(g_wifiHint, LV_LABEL_LONG_DOT);
@@ -3543,10 +3562,13 @@ static void processKey(char c) {
   }
 
   if (wifiVisible()) {
-    if (c == '\b' || c == 127 || c == 27) {
-      const char *text = lv_textarea_get_text(activeWifiArea());
-      if (text && text[0]) {
-        lv_textarea_delete_char(activeWifiArea());
+    if (c == 27 || c == 'q' || c == 'Q') {
+      hideWifiPopup();
+    } else if (c == '\b' || c == 127) {
+      lv_obj_t *area = activeWifiArea();
+      const char *text = area ? lv_textarea_get_text(area) : "";
+      if (area && text && text[0]) {
+        lv_textarea_delete_char(area);
       } else if (g_wifiActiveField > 0) {
         focusWifiField(g_wifiActiveField - 1);
         uiToast("Vorheriges Feld", 1500);
@@ -3558,13 +3580,18 @@ static void processKey(char c) {
         focusWifiField(g_wifiActiveField + 1);
         uiToast(g_wifiActiveField == 1 ? "SSID eingeben" :
                                       "Passwort eingeben; Enter speichert", 2200);
-      } else {
+      } else if (g_wifiActiveField == 2) {
         saveWifiAndConnect();
+      } else {
+        toggleWifiEnabledFromPopup();
+        hideWifiPopup();
       }
     } else if (c == 'o' || c == 'O') {
       toggleWifiEnabledFromPopup();
+      hideWifiPopup();
     } else if (c >= 32 && c <= 126) {
-      lv_textarea_add_char(activeWifiArea(), c);
+      lv_obj_t *area = activeWifiArea();
+      if (area) lv_textarea_add_char(area, c);
     }
     return;
   }
@@ -3698,6 +3725,15 @@ static String wifiStateText() {
 
 static void updateWifiPopupState() {
   if (g_wifiStateLabel) lv_label_set_text(g_wifiStateLabel, wifiStateText().c_str());
+  if (g_wifiToggleLabel) {
+    lv_label_set_text(g_wifiToggleLabel, g_wifiEnabled ? "WLAN ausschalten" : "WLAN einschalten");
+  }
+  if (g_wifiToggleButton) {
+    lv_obj_set_style_bg_color(
+        g_wifiToggleButton,
+        lv_color_hex(g_wifiEnabled ? 0x285A38 : 0x3B2A2A),
+        0);
+  }
 }
 
 static void readWifiFieldsFromPopup() {
@@ -3712,12 +3748,19 @@ static void readWifiFieldsFromPopup() {
 static lv_obj_t *activeWifiArea() {
   if (g_wifiActiveField == 0) return g_wifiNameArea;
   if (g_wifiActiveField == 1) return g_wifiSsidArea;
-  return g_wifiPasswordArea;
+  if (g_wifiActiveField == 2) return g_wifiPasswordArea;
+  return nullptr;
+}
+
+static lv_obj_t *activeWifiObject() {
+  if (g_wifiActiveField == 3) return g_wifiToggleButton;
+  return activeWifiArea();
 }
 
 static void focusWifiField(uint8_t field) {
-  g_wifiActiveField = field > 2 ? 2 : field;
-  lv_group_focus_obj(activeWifiArea());
+  g_wifiActiveField = field > 3 ? 3 : field;
+  lv_obj_t *obj = activeWifiObject();
+  if (obj) lv_group_focus_obj(obj);
 }
 
 static void showWifiPopup() {
@@ -3817,7 +3860,7 @@ static void pollRotary() {
       wakeDisplay();
 
       if (wifiVisible()) {
-        focusWifiField((g_wifiActiveField + 1) % 3);
+        focusWifiField((g_wifiActiveField + 1) % 4);
       } else if (powerVisible()) {
         shutdownPager();
       } else if (tracksVisible()) {

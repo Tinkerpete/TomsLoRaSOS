@@ -151,6 +151,12 @@ arduino-cli upload  --fqbn esp32:esp32:tlora_pager -p COMx .\TomsLoRaSOS
 | Enter | Nachricht senden oder Warnung quittieren |
 | Backspace | Zeichen loeschen |
 
+Im WLAN-Popup gibt es vier fokussierbare Felder: Name, SSID, Passwort und
+`WLAN einschalten/ausschalten`. Der Scrollrad-Klick wechselt zwischen diesen
+Feldern. Enter speichert im Passwortfeld; auf dem WLAN-Feld schaltet Enter WLAN
+ein oder aus und schliesst das Popup. `q` oder Esc schliesst das Popup ohne
+weitere Aktion.
+
 ## LoRa-Hinweis
 
 Das Projekt nutzt ein eigenes kompaktes Textprotokoll fuer POS, MSG, SOS, ACK
