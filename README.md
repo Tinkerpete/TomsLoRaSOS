@@ -157,8 +157,8 @@ Feldern. Enter speichert im Passwortfeld; auf dem WLAN-Feld schaltet Enter WLAN
 ein oder aus und schliesst das Popup. `q` oder Esc schliesst das Popup ohne
 weitere Aktion.
 
-Die Statuszeile zeigt den SOS-/Totmannmodus explizit als `Sos:Off`, `Sos:On`,
-`Sos:Warn` oder `Sos:Send`.
+Die Statuszeile zeigt den SOS-/Totmannmodus explizit als `SOS: Off`, `SOS: On`,
+`SOS: Warn` oder `SOS: Send`.
 
 ## LoRa-Hinweis
 

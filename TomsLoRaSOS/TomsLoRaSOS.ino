@@ -312,10 +312,10 @@ static float angleDistance(float a, float b) {
 
 static String safetyName() {
   switch (g_safety) {
-    case SAFETY_ARMED: return "Sos:On";
-    case SAFETY_WARNING: return "Sos:Warn";
-    case SAFETY_SOS: return "Sos:Send";
-    default: return "Sos:Off";
+    case SAFETY_ARMED: return "SOS: On";
+    case SAFETY_WARNING: return "SOS: Warn";
+    case SAFETY_SOS: return "SOS: Send";
+    default: return "SOS: Off";
   }
 }
 

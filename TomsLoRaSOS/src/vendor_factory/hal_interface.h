@@ -1509,7 +1509,8 @@ void hw_set_audio_effect_ab_class(bool enable);
 
 
 #if defined(ARDUINO_T_LORA_PAGER)
-#define USING_BLE_KEYBOARD
+// TomsLoRaSOS does not use the LilyGO factory BLE keyboard feature. Keeping it
+// disabled avoids pulling the optional ESP32 BLE Keyboard dependency into builds.
 #define  FLOAT_BUTTON_WIDTH  40
 #define  FLOAT_BUTTON_HEIGHT 40
 #ifndef USING_BHI260_SENSOR
@@ -1567,4 +1568,3 @@ void hw_set_audio_effect_ab_class(bool enable);
 
 
 #endif
-
