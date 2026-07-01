@@ -213,19 +213,27 @@ static lv_obj_t *g_messagesEscBottom = nullptr;
 static lv_obj_t *g_messageListItems[APP_MAX_MESSAGE_LIST_ITEMS];
 static int16_t g_messageListItemCount = 0;
 static int16_t g_selectedMessageListItem = 0;
+static uint8_t g_messageFocus = 1; // 0 = list, 1 = text, 2 = close
 static lv_obj_t *g_tracksPopup = nullptr;
 static lv_obj_t *g_tracksList = nullptr;
 static lv_obj_t *g_trackNameArea = nullptr;
 static lv_obj_t *g_tracksEscTop = nullptr;
 static lv_obj_t *g_tracksEscBottom = nullptr;
+static lv_obj_t *g_trackVisibleButton = nullptr;
+static lv_obj_t *g_trackRecordButton = nullptr;
+static lv_obj_t *g_trackSaveButton = nullptr;
 static lv_obj_t *g_trackListItems[APP_MAX_TRACK_LIST_ITEMS];
 static int8_t g_trackListItemToTrack[APP_MAX_TRACK_LIST_ITEMS];
 static int16_t g_trackListItemCount = 0;
 static int16_t g_selectedTrackListItem = 0;
+static uint8_t g_trackFocus = 1; // 0 = list, 1 = name, 2 = visibility, 3 = recording, 4 = save, 5 = close
 static lv_obj_t *g_safetyPopup = nullptr;
 static lv_obj_t *g_safetyLabel = nullptr;
 static lv_obj_t *g_powerPopup = nullptr;
 static lv_obj_t *g_powerLabel = nullptr;
+static lv_obj_t *g_powerYesButton = nullptr;
+static lv_obj_t *g_powerNoButton = nullptr;
+static uint8_t g_powerFocus = 1; // 0 = yes, 1 = no
 
 static lv_obj_t *g_wifiPopup = nullptr;
 static lv_obj_t *g_wifiNameArea = nullptr;
@@ -233,9 +241,8 @@ static lv_obj_t *g_wifiSsidArea = nullptr;
 static lv_obj_t *g_wifiPasswordArea = nullptr;
 static lv_obj_t *g_wifiToggleButton = nullptr;
 static lv_obj_t *g_wifiToggleLabel = nullptr;
-static lv_obj_t *g_wifiStateLabel = nullptr;
-static lv_obj_t *g_wifiHint = nullptr;
-static uint8_t g_wifiActiveField = 0; // 0 = name, 1 = SSID, 2 = password, 3 = on/off
+static lv_obj_t *g_wifiCloseButton = nullptr;
+static uint8_t g_wifiActiveField = 0; // 0 = name, 1 = SSID, 2 = password, 3 = on/off, 4 = close
 
 static lv_obj_t *g_bootLabel = nullptr;
 static uint16_t *g_mapBuffer = nullptr;
@@ -255,6 +262,7 @@ static bool messagesVisible();
 static bool tracksVisible();
 static bool powerVisible();
 static void rebuildMessageList();
+static void rebuildTracksList();
 static bool hasMapPosition(double lat, double lon);
 static void appendPointToRecordingTrack(double lat, double lon, double speedKmph);
 static bool saveTracksToSd();
@@ -2068,6 +2076,79 @@ static void styleEdgeEscLabel(lv_obj_t *label, bool selected) {
                               0);
 }
 
+static void styleDialogButton(lv_obj_t *label, bool selected) {
+  if (!label) return;
+  lv_obj_set_style_pad_hor(label, 4, 0);
+  lv_obj_set_style_pad_ver(label, 2, 0);
+  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_style_bg_opa(label, selected ? LV_OPA_80 : LV_OPA_40, 0);
+  lv_obj_set_style_bg_color(label,
+                            selected ? lv_color_hex(0x2D5D7B) : lv_color_hex(0x1E2B34),
+                            0);
+  lv_obj_set_style_text_color(label,
+                              selected ? lv_color_white() : lv_color_hex(0xFFD000),
+                              0);
+}
+
+static void focusMessageItem(uint8_t focus) {
+  g_messageFocus = focus > 2 ? 0 : focus;
+  if (g_messageFocus == 1 && g_textarea) {
+    lv_group_focus_obj(g_textarea);
+  } else if (g_messageFocus == 0 && g_messagesList) {
+    lv_group_focus_obj(g_messagesList);
+  } else if (g_messageFocus == 2 && g_messagesEscBottom) {
+    lv_group_focus_obj(g_messagesEscBottom);
+  }
+  if (g_messagesEscTop) lv_obj_add_flag(g_messagesEscTop, LV_OBJ_FLAG_HIDDEN);
+  styleDialogButton(g_messagesEscBottom, g_messageFocus == 2);
+  rebuildMessageList();
+}
+
+static void focusNextMessageItem() {
+  focusMessageItem((uint8_t)((g_messageFocus + 1) % 3));
+}
+
+static void focusTrackItem(uint8_t focus) {
+  g_trackFocus = focus > 5 ? 0 : focus;
+  if (g_trackFocus == 1 && g_trackNameArea) {
+    lv_group_focus_obj(g_trackNameArea);
+  } else if (g_trackFocus == 0 && g_tracksList) {
+    lv_group_focus_obj(g_tracksList);
+  } else if (g_trackFocus == 2 && g_trackVisibleButton) {
+    lv_group_focus_obj(g_trackVisibleButton);
+  } else if (g_trackFocus == 3 && g_trackRecordButton) {
+    lv_group_focus_obj(g_trackRecordButton);
+  } else if (g_trackFocus == 4 && g_trackSaveButton) {
+    lv_group_focus_obj(g_trackSaveButton);
+  } else if (g_trackFocus == 5 && g_tracksEscBottom) {
+    lv_group_focus_obj(g_tracksEscBottom);
+  }
+  styleDialogButton(g_trackVisibleButton, g_trackFocus == 2);
+  styleDialogButton(g_trackRecordButton, g_trackFocus == 3);
+  styleDialogButton(g_trackSaveButton, g_trackFocus == 4);
+  styleDialogButton(g_tracksEscBottom, g_trackFocus == 5);
+  rebuildTracksList();
+}
+
+static void focusNextTrackItem() {
+  focusTrackItem((uint8_t)((g_trackFocus + 1) % 6));
+}
+
+static void updatePowerFocus() {
+  styleDialogButton(g_powerYesButton, g_powerFocus == 0);
+  styleDialogButton(g_powerNoButton, g_powerFocus == 1);
+  if (g_powerFocus == 0 && g_powerYesButton) {
+    lv_group_focus_obj(g_powerYesButton);
+  } else if (g_powerNoButton) {
+    lv_group_focus_obj(g_powerNoButton);
+  }
+}
+
+static void focusNextPowerItem() {
+  g_powerFocus = g_powerFocus == 0 ? 1 : 0;
+  updatePowerFocus();
+}
+
 static void scrollSelectedListItemIntoView(lv_obj_t **items, int16_t count, int16_t selected) {
   if (selected < 0 || selected >= count || !items[selected]) return;
   lv_obj_scroll_to_view(items[selected], LV_ANIM_OFF);
@@ -2094,11 +2175,13 @@ static void rebuildMessageList() {
 
   for (int16_t i = 0; i < g_messageListItemCount; i++) {
     const bool outgoing = i < g_messageCount && g_messages[i].outgoing;
-    styleListItem(g_messageListItems[i], i == g_selectedMessageListItem, outgoing);
+    styleListItem(g_messageListItems[i],
+                  g_messageFocus == 0 && i == g_selectedMessageListItem,
+                  outgoing);
   }
 
-  styleEdgeEscLabel(g_messagesEscTop, g_selectedMessageListItem < 0);
-  styleEdgeEscLabel(g_messagesEscBottom, g_selectedMessageListItem == g_messageListItemCount);
+  if (g_messagesEscTop) lv_obj_add_flag(g_messagesEscTop, LV_OBJ_FLAG_HIDDEN);
+  styleDialogButton(g_messagesEscBottom, g_messageFocus == 2);
 
   scrollSelectedListItemIntoView(g_messageListItems,
                                  g_messageListItemCount,
@@ -2112,11 +2195,10 @@ static void hideMessagesPopup() {
 static void showMessagesPopup(bool focusTextArea) {
   wakeDisplay();
   g_selectedMessageListItem = g_messageCount > 0 ? g_messageCount - 1 : -1;
+  g_messageFocus = focusTextArea ? 1 : 0;
   rebuildMessageList();
   lv_obj_clear_flag(g_messagesPopup, LV_OBJ_FLAG_HIDDEN);
-  if (focusTextArea) {
-    lv_group_focus_obj(g_textarea);
-  }
+  focusMessageItem(g_messageFocus);
 }
 
 static uint16_t trackColorByIndex(uint8_t index) {
@@ -2260,11 +2342,13 @@ static void rebuildTracksList() {
   for (int16_t i = 0; i < g_trackListItemCount; i++) {
     const int8_t trackIndex = g_trackListItemToTrack[i];
     const bool accent = trackIndex >= 0 && g_tracks[trackIndex].recording;
-    styleListItem(g_trackListItems[i], i == g_selectedTrackListItem, accent);
+    styleListItem(g_trackListItems[i],
+                  g_trackFocus == 0 && i == g_selectedTrackListItem,
+                  accent);
   }
 
-  styleEdgeEscLabel(g_tracksEscTop, g_selectedTrackListItem < 0);
-  styleEdgeEscLabel(g_tracksEscBottom, g_selectedTrackListItem == g_trackListItemCount);
+  if (g_tracksEscTop) lv_obj_add_flag(g_tracksEscTop, LV_OBJ_FLAG_HIDDEN);
+  styleDialogButton(g_tracksEscBottom, g_trackFocus == 5);
 
   scrollSelectedListItemIntoView(g_trackListItems,
                                  g_trackListItemCount,
@@ -2290,10 +2374,11 @@ static void showTracksPopup() {
   int8_t newest = newestTrackIndex();
   g_selectedTrackIndex = newest;
   g_selectedTrackListItem = newest >= 0 ? g_trackListItemCount : -1;
+  g_trackFocus = 1;
   rebuildTracksList();
   if (newest >= 0) selectTrackListItemForTrack(newest);
   lv_obj_clear_flag(g_tracksPopup, LV_OBJ_FLAG_HIDDEN);
-  lv_group_focus_obj(g_trackNameArea);
+  focusTrackItem(1);
 }
 
 static void selectTrackStep(int direction) {
@@ -2905,7 +2990,8 @@ static void hideSafetyPopup() {
 static void showSafetyPopup(uint32_t remainingSeconds) {
   wakeDisplay();
   lv_obj_clear_flag(g_safetyPopup, LV_OBJ_FLAG_HIDDEN);
-  String text = "KEINE BEWEGUNG ERKANNT\nSOS in " + String(remainingSeconds) +
+  String text = "Totmann-Warnung\n\nKeine Bewegung erkannt\nSOS in " +
+                String(remainingSeconds) +
                 " Sekunden\n\n#FFD000 Enter:#Ich bin OK";
   lv_label_set_text(g_safetyLabel, text.c_str());
 }
@@ -2916,6 +3002,15 @@ static void hidePowerPopup() {
 
 static void showPowerPopup() {
   wakeDisplay();
+  g_powerFocus = 1;
+  if (g_powerLabel) {
+    lv_label_set_text(g_powerLabel, "Wirklich ausschalten?");
+    lv_obj_set_pos(g_powerLabel, 7, 42);
+    lv_obj_set_width(g_powerLabel, 346);
+  }
+  if (g_powerYesButton) lv_obj_clear_flag(g_powerYesButton, LV_OBJ_FLAG_HIDDEN);
+  if (g_powerNoButton) lv_obj_clear_flag(g_powerNoButton, LV_OBJ_FLAG_HIDDEN);
+  updatePowerFocus();
   lv_obj_clear_flag(g_powerPopup, LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -2923,8 +3018,11 @@ static void shutdownPager() {
   Serial.println("[POWER] shutdown requested");
   if (g_powerLabel) {
     lv_label_set_text(g_powerLabel, "SCHALTE AUS ...\n\nUSB trennen, falls das Geraet\nnicht ausgeht.");
-    lv_obj_center(g_powerLabel);
+    lv_obj_set_pos(g_powerLabel, 7, 36);
+    lv_obj_set_width(g_powerLabel, 346);
   }
+  if (g_powerYesButton) lv_obj_add_flag(g_powerYesButton, LV_OBJ_FLAG_HIDDEN);
+  if (g_powerNoButton) lv_obj_add_flag(g_powerNoButton, LV_OBJ_FLAG_HIDDEN);
   lv_timer_handler();
   delay(250);
 
@@ -3010,7 +3108,7 @@ static void setupUi() {
   lv_obj_add_flag(g_messagesPopup, LV_OBJ_FLAG_HIDDEN);
 
   lv_obj_t *title = makeBoundedLabel(g_messagesPopup,
-                                     "Nachrichten  #FFD000 Rad:#Scroll  #FFD000 Zurueck:#Zu",
+                                     "Nachrichten lesen und senden",
                                      14, 1, 420);
   enableRecolor(title);
   lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
@@ -3025,10 +3123,16 @@ static void setupUi() {
   lv_obj_set_style_bg_color(g_messagesList, lv_color_hex(0x0D141A), 0);
   lv_obj_set_style_pad_all(g_messagesList, 4, 0);
 
-  g_messagesEscTop = makeLabel(g_messagesPopup, "Zurueck", 192, 15);
-  g_messagesEscBottom = makeLabel(g_messagesPopup, "Zurueck", 192, 117);
-  styleEdgeEscLabel(g_messagesEscTop, false);
-  styleEdgeEscLabel(g_messagesEscBottom, false);
+  g_messagesEscTop = makeLabel(g_messagesPopup, "", 192, 15);
+  lv_obj_add_flag(g_messagesEscTop, LV_OBJ_FLAG_HIDDEN);
+  g_messagesEscBottom = makeLabel(g_messagesPopup, "Zurueck", 350, 174);
+  lv_obj_set_size(g_messagesEscBottom, 76, 18);
+  styleDialogButton(g_messagesEscBottom, false);
+  lv_obj_t *messagesHint = makeBoundedLabel(
+      g_messagesPopup,
+      "#FFD000 Orange:#weiter  #FFD000 Enter:#senden/auswaehlen",
+      14, 174, 328);
+  enableRecolor(messagesHint);
 
   g_textarea = lv_textarea_create(g_messagesPopup);
   lv_obj_set_pos(g_textarea, 14, 134);
@@ -3045,7 +3149,7 @@ static void setupUi() {
 
   lv_obj_t *tracksTitle = makeBoundedLabel(
       g_tracksPopup,
-      "Tracks #FFD000 Rad:#Wahl #FFD000 Druck/V:#Sicht #FFD000 R:#Rec #FFD000 S:#SD",
+      "Tracks aufzeichnen und anzeigen",
       6, 1, 436);
   enableRecolor(tracksTitle);
 
@@ -3058,10 +3162,11 @@ static void setupUi() {
   lv_obj_set_style_bg_color(g_tracksList, lv_color_hex(0x0D141A), 0);
   lv_obj_set_style_pad_all(g_tracksList, 4, 0);
 
-  g_tracksEscTop = makeLabel(g_tracksPopup, "Zurueck", 192, 15);
-  g_tracksEscBottom = makeLabel(g_tracksPopup, "Zurueck", 192, 109);
-  styleEdgeEscLabel(g_tracksEscTop, false);
-  styleEdgeEscLabel(g_tracksEscBottom, false);
+  g_tracksEscTop = makeLabel(g_tracksPopup, "", 192, 15);
+  lv_obj_add_flag(g_tracksEscTop, LV_OBJ_FLAG_HIDDEN);
+  g_tracksEscBottom = makeLabel(g_tracksPopup, "Zurueck", 350, 166);
+  lv_obj_set_size(g_tracksEscBottom, 76, 18);
+  styleDialogButton(g_tracksEscBottom, false);
 
   g_trackNameArea = lv_textarea_create(g_tracksPopup);
   lv_obj_set_pos(g_trackNameArea, 5, 126);
@@ -3070,11 +3175,15 @@ static void setupUi() {
   lv_textarea_set_max_length(g_trackNameArea, 32);
   lv_textarea_set_placeholder_text(g_trackNameArea, "Neuer Trackname");
 
-  lv_obj_t *tracksHint = makeBoundedLabel(
-      g_tracksPopup,
-      "Name+#FFD000 Enter:#Neu. Leer: #FFD000 Rad/R/V/S:#Bedienen. #FFD000 Zurueck:#Zu.",
-      7, 166, 434);
-  enableRecolor(tracksHint);
+  g_trackVisibleButton = makeLabel(g_tracksPopup, "Sicht", 7, 166);
+  lv_obj_set_size(g_trackVisibleButton, 66, 18);
+  styleDialogButton(g_trackVisibleButton, false);
+  g_trackRecordButton = makeLabel(g_tracksPopup, "Rec", 82, 166);
+  lv_obj_set_size(g_trackRecordButton, 66, 18);
+  styleDialogButton(g_trackRecordButton, false);
+  g_trackSaveButton = makeLabel(g_tracksPopup, "SD", 157, 166);
+  lv_obj_set_size(g_trackSaveButton, 66, 18);
+  styleDialogButton(g_trackSaveButton, false);
 
   g_safetyPopup = lv_obj_create(lv_layer_top());
   lv_obj_set_size(g_safetyPopup, 400, 155);
@@ -3094,14 +3203,21 @@ static void setupUi() {
   stylePopupShell(g_powerPopup, 0x202020);
   lv_obj_add_flag(g_powerPopup, LV_OBJ_FLAG_HIDDEN);
 
-  g_powerLabel = lv_label_create(g_powerPopup);
-  lv_label_set_text(g_powerLabel, "Ausschalten?\n\n#FFD000 Enter:#Ja\n#FFD000 Zurueck:#Nein");
+  lv_obj_t *powerTitle = makeBoundedLabel(g_powerPopup, "Geraet ausschalten", 7, 5, 346);
+  lv_obj_set_style_text_align(powerTitle, LV_TEXT_ALIGN_CENTER, 0);
+
+  g_powerLabel = makeBoundedLabel(g_powerPopup, "Wirklich ausschalten?", 7, 42, 346);
   enableRecolor(g_powerLabel);
-  lv_obj_set_width(g_powerLabel, 340);
-  lv_label_set_long_mode(g_powerLabel, LV_LABEL_LONG_WRAP);
-  lv_obj_center(g_powerLabel);
   lv_obj_set_style_text_align(g_powerLabel, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_set_style_text_color(g_powerLabel, lv_color_white(), 0);
+
+  g_powerYesButton = makeLabel(g_powerPopup, "Ausschalten", 18, 86);
+  lv_obj_set_size(g_powerYesButton, 110, 18);
+  styleDialogButton(g_powerYesButton, false);
+
+  g_powerNoButton = makeLabel(g_powerPopup, "Zurueck", 266, 86);
+  lv_obj_set_size(g_powerNoButton, 76, 18);
+  styleDialogButton(g_powerNoButton, false);
 
   g_wifiPopup = lv_obj_create(lv_layer_top());
   lv_obj_set_size(g_wifiPopup, 448, 214);
@@ -3109,57 +3225,38 @@ static void setupUi() {
   stylePopupShell(g_wifiPopup, 0x15212A);
   lv_obj_add_flag(g_wifiPopup, LV_OBJ_FLAG_HIDDEN);
 
-  makeBoundedLabel(g_wifiPopup, "WLAN-Einstellungen", 7, 2, 260);
-  g_wifiStateLabel = makeBoundedLabel(g_wifiPopup, "WLAN: AUS", 272, 2, 160);
-  lv_obj_set_style_text_align(g_wifiStateLabel, LV_TEXT_ALIGN_RIGHT, 0);
-  makeLabel(g_wifiPopup, "Name:", 7, 27);
-  makeLabel(g_wifiPopup, "SSID:", 7, 67);
-  makeLabel(g_wifiPopup, "Passwort:", 7, 107);
+  lv_obj_t *wifiTitle = makeBoundedLabel(g_wifiPopup, "WLAN und Geraetename", 7, 4, 434);
+  lv_obj_set_style_text_align(wifiTitle, LV_TEXT_ALIGN_CENTER, 0);
+  makeLabel(g_wifiPopup, "Name:", 7, 42);
+  makeLabel(g_wifiPopup, "SSID:", 7, 88);
+  makeLabel(g_wifiPopup, "Passwort:", 7, 134);
 
   g_wifiNameArea = lv_textarea_create(g_wifiPopup);
-  lv_obj_set_pos(g_wifiNameArea, 86, 19);
+  lv_obj_set_pos(g_wifiNameArea, 86, 34);
   lv_obj_set_size(g_wifiNameArea, 337, 32);
   lv_textarea_set_one_line(g_wifiNameArea, true);
   lv_textarea_set_max_length(g_wifiNameArea, 24);
 
   g_wifiSsidArea = lv_textarea_create(g_wifiPopup);
-  lv_obj_set_pos(g_wifiSsidArea, 86, 59);
+  lv_obj_set_pos(g_wifiSsidArea, 86, 80);
   lv_obj_set_size(g_wifiSsidArea, 337, 32);
   lv_textarea_set_one_line(g_wifiSsidArea, true);
   lv_textarea_set_max_length(g_wifiSsidArea, 64);
 
   g_wifiPasswordArea = lv_textarea_create(g_wifiPopup);
-  lv_obj_set_pos(g_wifiPasswordArea, 86, 99);
+  lv_obj_set_pos(g_wifiPasswordArea, 86, 126);
   lv_obj_set_size(g_wifiPasswordArea, 337, 32);
   lv_textarea_set_one_line(g_wifiPasswordArea, true);
   lv_textarea_set_max_length(g_wifiPasswordArea, 64);
   lv_textarea_set_password_mode(g_wifiPasswordArea, true);
 
-  makeLabel(g_wifiPopup, "WLAN:", 7, 143);
-  g_wifiToggleButton = lv_obj_create(g_wifiPopup);
-  lv_obj_set_pos(g_wifiToggleButton, 86, 135);
-  lv_obj_set_size(g_wifiToggleButton, 337, 30);
-  lv_obj_clear_flag(g_wifiToggleButton, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_add_flag(g_wifiToggleButton, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_style_bg_color(g_wifiToggleButton, lv_color_hex(0x223445), 0);
-  lv_obj_set_style_bg_opa(g_wifiToggleButton, LV_OPA_COVER, 0);
-  lv_obj_set_style_border_width(g_wifiToggleButton, 1, 0);
-  lv_obj_set_style_border_color(g_wifiToggleButton, lv_color_hex(0x5A7C99), 0);
-  lv_obj_set_style_border_width(g_wifiToggleButton, 2, LV_STATE_FOCUSED);
-  lv_obj_set_style_border_color(g_wifiToggleButton, lv_color_hex(0xFFD000), LV_STATE_FOCUSED);
-  lv_obj_set_style_radius(g_wifiToggleButton, 4, 0);
-  g_wifiToggleLabel = lv_label_create(g_wifiToggleButton);
-  lv_obj_center(g_wifiToggleLabel);
-  lv_obj_set_style_text_color(g_wifiToggleLabel, lv_color_white(), 0);
+  g_wifiToggleButton = makeLabel(g_wifiPopup, "WLAN ein", 7, 176);
+  lv_obj_set_size(g_wifiToggleButton, 96, 18);
+  styleDialogButton(g_wifiToggleButton, false);
 
-  g_wifiHint = makeLabel(
-      g_wifiPopup,
-      "#FFD000 Druck:#Feld  #FFD000 Enter:#Weiter/speichern/AN-AUS  #FFD000 Q/Esc:#Schliessen",
-      7, 178);
-  enableRecolor(g_wifiHint);
-  lv_obj_set_width(g_wifiHint, 434);
-  lv_label_set_long_mode(g_wifiHint, LV_LABEL_LONG_DOT);
-  lv_obj_set_style_text_color(g_wifiHint, lv_color_hex(0xD0E8FF), 0);
+  g_wifiCloseButton = makeLabel(g_wifiPopup, "Zurueck", 350, 176);
+  lv_obj_set_size(g_wifiCloseButton, 76, 18);
+  styleDialogButton(g_wifiCloseButton, false);
 
   g_bootLabel = lv_label_create(screen);
   lv_label_set_text(g_bootLabel, "Outdoor Pager\nStarte GPS, LoRa und Karte ...\n#FFD000 W:#WLAN einrichten");
@@ -3554,17 +3651,21 @@ static void processKey(char c) {
   }
 
   if (powerVisible()) {
-    if (c == '\n' || c == '\r') {
-      shutdownPager();
-    } else if (c == '\b' || c == 127 || c == 27 ||
-               c == 'p' || c == 'P') {
+    if (c == '\t') {
+      focusNextPowerItem();
+    } else if (c == '\n' || c == '\r') {
+      if (g_powerFocus == 0) shutdownPager();
+      else hidePowerPopup();
+    } else if ((c == 'q' || c == 'Q') && g_powerFocus == 1) {
       hidePowerPopup();
     }
     return;
   }
 
   if (wifiVisible()) {
-    if (c == 27 || c == 'q' || c == 'Q') {
+    if (c == '\t') {
+      focusWifiField((uint8_t)((g_wifiActiveField + 1) % 5));
+    } else if ((c == 'q' || c == 'Q') && g_wifiActiveField == 4) {
       hideWifiPopup();
     } else if (c == '\b' || c == 127) {
       lv_obj_t *area = activeWifiArea();
@@ -3574,8 +3675,6 @@ static void processKey(char c) {
       } else if (g_wifiActiveField > 0) {
         focusWifiField(g_wifiActiveField - 1);
         uiToast("Vorheriges Feld", 1500);
-      } else {
-        hideWifiPopup();
       }
     } else if (c == '\n' || c == '\r') {
       if (g_wifiActiveField < 2) {
@@ -3584,11 +3683,11 @@ static void processKey(char c) {
                                       "Passwort eingeben; Enter speichert", 2200);
       } else if (g_wifiActiveField == 2) {
         saveWifiFieldsAndFocusToggle();
-      } else {
+      } else if (g_wifiActiveField == 3) {
         toggleWifiEnabledFromPopup();
+      } else {
+        hideWifiPopup();
       }
-    } else if (c == 'o' || c == 'O') {
-      toggleWifiEnabledFromPopup();
     } else if (c >= 32 && c <= 126) {
       lv_obj_t *area = activeWifiArea();
       if (area) lv_textarea_add_char(area, c);
@@ -3600,53 +3699,67 @@ static void processKey(char c) {
     const char *trackName = lv_textarea_get_text(g_trackNameArea);
     bool hasNameText = trackName && trackName[0];
 
-    if (c == '\b' || c == 127 || c == 27) {
-      if (hasNameText) {
+    if (c == '\t') {
+      focusNextTrackItem();
+    } else if ((c == 'q' || c == 'Q') && g_trackFocus == 5) {
+      hideTracksPopup();
+    } else if (c == '\b' || c == 127) {
+      if (g_trackFocus == 1 && hasNameText) {
         lv_textarea_delete_char(g_trackNameArea);
-      } else {
-        hideTracksPopup();
       }
     } else if (c == '\n' || c == '\r') {
-      if (hasNameText) {
+      if (g_trackFocus == 0 || g_trackFocus == 2) {
+        if (!selectedTrackItemIsExit()) toggleSelectedTrackVisibility();
+      } else if (g_trackFocus == 1 && hasNameText) {
         int8_t created = createTrack(String(trackName));
         lv_textarea_set_text(g_trackNameArea, "");
         rebuildTracksList();
         if (created >= 0) selectTrackListItemForTrack(created);
         refreshStatus();
-      } else if (selectedTrackItemIsExit()) {
-        lv_group_focus_obj(g_trackNameArea);
+      } else if (g_trackFocus == 1) {
+        focusTrackItem(0);
+      } else if (g_trackFocus == 3) {
+        toggleTrackRecording();
+      } else if (g_trackFocus == 4) {
+        saveTracksToSd();
+      } else if (g_trackFocus == 5) {
+        hideTracksPopup();
       }
-    } else if (!hasNameText && (c == 'r' || c == 'R')) {
+    } else if (g_trackFocus == 0 && (c == 'r' || c == 'R')) {
       toggleTrackRecording();
-    } else if (!hasNameText && (c == 's' || c == 'S')) {
+    } else if (g_trackFocus == 0 && (c == 's' || c == 'S')) {
       saveTracksToSd();
-    } else if (!hasNameText && (c == 'v' || c == 'V')) {
+    } else if (g_trackFocus == 0 && (c == 'v' || c == 'V')) {
       if (selectedTrackItemIsExit()) {
-        lv_group_focus_obj(g_trackNameArea);
+        focusTrackItem(1);
       } else {
         toggleSelectedTrackVisibility();
       }
-    } else if (!hasNameText && c == '+') {
+    } else if (g_trackFocus == 0 && c == '+') {
       selectTrackStep(+1);
-    } else if (!hasNameText && c == '-') {
+    } else if (g_trackFocus == 0 && c == '-') {
       selectTrackStep(-1);
-    } else if (c >= 32 && c <= 126) {
+    } else if (g_trackFocus == 1 && c >= 32 && c <= 126) {
       lv_textarea_add_char(g_trackNameArea, c);
     }
     return;
   }
 
   if (messagesVisible()) {
-    if (c == '\b' || c == 127 || c == 27) {
+    if (c == '\t') {
+      focusNextMessageItem();
+    } else if ((c == 'q' || c == 'Q') && g_messageFocus == 2) {
+      hideMessagesPopup();
+    } else if (c == '\b' || c == 127) {
       const char *text = lv_textarea_get_text(g_textarea);
-      if (text && text[0]) {
+      if (g_messageFocus == 1 && text && text[0]) {
         lv_textarea_delete_char(g_textarea);
-      } else {
-        hideMessagesPopup();
       }
     } else if (c == '\n' || c == '\r') {
-      sendTextarea();
-    } else if (c >= 32 && c <= 126) {
+      if (g_messageFocus == 1) sendTextarea();
+      else if (g_messageFocus == 2) hideMessagesPopup();
+      else focusMessageItem(1);
+    } else if (g_messageFocus == 1 && c >= 32 && c <= 126) {
       lv_textarea_add_char(g_textarea, c);
     }
     return;
@@ -3717,23 +3830,14 @@ static bool wifiVisible() {
   return g_wifiPopup && !lv_obj_has_flag(g_wifiPopup, LV_OBJ_FLAG_HIDDEN);
 }
 
-static String wifiStateText() {
-  if (!g_wifiEnabled) return "WLAN: AUS";
-  if (WiFi.status() == WL_CONNECTED) return "WLAN: AN";
-  return "WLAN: VERBINDET";
-}
-
 static void updateWifiPopupState() {
-  if (g_wifiStateLabel) lv_label_set_text(g_wifiStateLabel, wifiStateText().c_str());
   if (g_wifiToggleLabel) {
     lv_label_set_text(g_wifiToggleLabel, g_wifiEnabled ? "WLAN ausschalten" : "WLAN einschalten");
+  } else if (g_wifiToggleButton) {
+    lv_label_set_text(g_wifiToggleButton, g_wifiEnabled ? "WLAN aus" : "WLAN ein");
   }
-  if (g_wifiToggleButton) {
-    lv_obj_set_style_bg_color(
-        g_wifiToggleButton,
-        lv_color_hex(g_wifiEnabled ? 0x285A38 : 0x3B2A2A),
-        0);
-  }
+  styleDialogButton(g_wifiToggleButton, g_wifiActiveField == 3);
+  styleDialogButton(g_wifiCloseButton, g_wifiActiveField == 4);
 }
 
 static void readWifiFieldsFromPopup() {
@@ -3754,13 +3858,15 @@ static lv_obj_t *activeWifiArea() {
 
 static lv_obj_t *activeWifiObject() {
   if (g_wifiActiveField == 3) return g_wifiToggleButton;
+  if (g_wifiActiveField == 4) return g_wifiCloseButton;
   return activeWifiArea();
 }
 
 static void focusWifiField(uint8_t field) {
-  g_wifiActiveField = field > 3 ? 3 : field;
+  g_wifiActiveField = field > 4 ? 4 : field;
   lv_obj_t *obj = activeWifiObject();
   if (obj) lv_group_focus_obj(obj);
+  updateWifiPopupState();
 }
 
 static void showWifiPopup() {
@@ -3899,24 +4005,17 @@ static void pollRotary() {
       wakeDisplay();
 
       if (wifiVisible()) {
-        focusWifiField((g_wifiActiveField + 1) % 4);
+        focusWifiField((uint8_t)((g_wifiActiveField + 1) % 5));
       } else if (powerVisible()) {
-        shutdownPager();
+        focusNextPowerItem();
       } else if (tracksVisible()) {
-        const char *trackName = lv_textarea_get_text(g_trackNameArea);
-        if (trackName && trackName[0]) {
-          int8_t created = createTrack(String(trackName));
-          lv_textarea_set_text(g_trackNameArea, "");
-          rebuildTracksList();
-          if (created >= 0) selectTrackListItemForTrack(created);
-          refreshStatus();
-        } else if (selectedTrackItemIsExit()) {
-          lv_group_focus_obj(g_trackNameArea);
-        } else {
+        if (g_trackFocus == 0 && !selectedTrackItemIsExit()) {
           toggleSelectedTrackVisibility();
+        } else {
+          focusNextTrackItem();
         }
       } else if (messagesVisible()) {
-        lv_group_focus_obj(g_textarea);
+        focusNextMessageItem();
       } else if (!messagesVisible() &&
                  g_safety != SAFETY_WARNING && g_safety != SAFETY_SOS) {
         toggleMapPanAxis();
@@ -3930,18 +4029,20 @@ static void pollRotary() {
 
   int rotaryStep = msg.dir == ROTARY_DIR_UP ? +1 : -1;
 
-  if (tracksVisible()) {
+  if (tracksVisible() && g_trackFocus == 0) {
     selectTrackStep(rotaryStep);
     return;
   }
 
-  if (messagesVisible()) {
+  if (messagesVisible() && g_messageFocus == 0) {
     selectMessageStep(rotaryStep);
     return;
   }
 
   // Keep dialogs stable while entering text or changing settings.
-  if (wifiVisible() ||
+  if (messagesVisible() ||
+      tracksVisible() ||
+      wifiVisible() ||
       powerVisible() ||
       g_safety == SAFETY_WARNING || g_safety == SAFETY_SOS) {
     return;
