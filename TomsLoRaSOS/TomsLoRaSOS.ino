@@ -3640,6 +3640,10 @@ static void sendTextarea() {
   }
 }
 
+static bool isDeleteKey(char c) {
+  return c == '\b' || c == 127 || c == 27;
+}
+
 static void processKey(char c) {
   Serial.printf("[KEY] code=%u char=%c\n", (unsigned int)(uint8_t)c,
                 (c >= 32 && c <= 126) ? c : '.');
@@ -3667,7 +3671,7 @@ static void processKey(char c) {
       focusWifiField((uint8_t)((g_wifiActiveField + 1) % 5));
     } else if ((c == 'q' || c == 'Q') && g_wifiActiveField == 4) {
       hideWifiPopup();
-    } else if (c == '\b' || c == 127) {
+    } else if (isDeleteKey(c)) {
       lv_obj_t *area = activeWifiArea();
       const char *text = area ? lv_textarea_get_text(area) : "";
       if (area && text && text[0]) {
@@ -3703,7 +3707,7 @@ static void processKey(char c) {
       focusNextTrackItem();
     } else if ((c == 'q' || c == 'Q') && g_trackFocus == 5) {
       hideTracksPopup();
-    } else if (c == '\b' || c == 127) {
+    } else if (isDeleteKey(c)) {
       if (g_trackFocus == 1 && hasNameText) {
         lv_textarea_delete_char(g_trackNameArea);
       }
@@ -3750,7 +3754,7 @@ static void processKey(char c) {
       focusNextMessageItem();
     } else if ((c == 'q' || c == 'Q') && g_messageFocus == 2) {
       hideMessagesPopup();
-    } else if (c == '\b' || c == 127) {
+    } else if (isDeleteKey(c)) {
       const char *text = lv_textarea_get_text(g_textarea);
       if (g_messageFocus == 1 && text && text[0]) {
         lv_textarea_delete_char(g_textarea);
